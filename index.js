@@ -1,162 +1,78 @@
-'use strict';
+/**
+ * Барабаш Максим Сергеевич
+ * @param {Array} collection
+ * @params {Function[]} – Функции для запроса
+ * @returns {Array}
+ */
+function query(collection) {
+    var handlerCollection = Array.prototype.slice.call(arguments, 1);
+    handlerCollection.sort(function sortfunction(a, b) {
+        if (a.order < b.order) {
+            return -1
+        }
+        if (a.order > b.order) {
+            return 1
+        }
+        else {
+            return 0
+        }
+    });
+    var result = collection;
+    for (var i = 0; i < handlerCollection.length; i++) {
+        result = handlerCollection[i].processParam(result);
+    }
+    return result
+}
 
-// Код валидации формы
-function validateForm(parameter) {
-    let form = (document.querySelector('form#' + parameter.formId + '.form'));
-    initForm(form, parameter).setFormProperties();
-}
-function initForm(form, parameter) {
-    return {
-        elementList: form,
-        parameter: parameter,
-        setFormProperties: function() {
-            let inputList = new Array();
-            let parameter = this.parameter;
-            for (let i = 0; i < this.elementList.length; i++) {
-                if(this.elementList[i].tagName !== 'BUTTON') {
-                    inputList.push(this.elementList[i]);
-                }
-            };
-            form.onsubmit = function(event) {
-                let validateResult = new Array();
-                event.preventDefault();
-                if(inputList !== []) {
-                    if(validate(form, parameter).validateIsRequired() === false) {
-                        reverseValidateClass(this, parameter, false);
-                        return
+/**
+ * @params {String[]}
+ */
+function select() {
+    var selectParam = Array.prototype.slice.call(arguments);
+    var selectObj = {
+        order: 2,
+        processParam: function (collection) {
+            for (var i = 0; i < collection.length; i++) {
+                var objParam = Object.keys(collection[i]);
+                for (var k = 0; k < objParam.length; k++) {
+                    if (selectParam.includes(objParam[k])) {
+                        continue
                     }
                     else {
-                        for (let i = 0; i <= inputList.length; i++) {
-                            if(i === inputList.length) {
-                                reverseValidateClass(this, parameter, true);
-                                return
-                            }
-                            else {
-                                switch (inputList[i].dataset.validator) {
-                                    case ('number'):
-                                        if(validate(inputList[i], parameter).validateNumber() === false) {
-                                            reverseValidateClass(this, parameter, false);
-                                            return
-                                        }
-                                        else {
-                                            break
-                                        }
-                                    case ('letters'):
-                                        if(validate(inputList[i], parameter).validateLetter() === false) {
-                                            reverseValidateClass(this, parameter, false);
-                                            return
-                                        }
-                                        else {
-                                            break
-                                        }
-                                    case ('regexp'):
-                                        if(validate(inputList[i], parameter).validateRegExp() === false) {
-                                            reverseValidateClass(this, parameter, false);
-                                            return
-                                        }
-                                        else {
-                                            break
-                                        }
-                                }
-                            }
-                        }
+                        delete collection[i][objParam[k]]
                     }
                 }
-                return
-            };
-            //Добавляем обработчики событий на инпутах
-            for (let i = 0; i < inputList.length; i++) {
-                inputList[i].onblur = function () {
-                    switch (this.dataset.validator) {
-                        case ('number'):
-                            validate(inputList[i], parameter).validateNumber();
-                            break;
-                        case ('letters'):
-                            validate(inputList[i], parameter).validateLetter();
-                            break;
-                        case ('regexp'):
-                            validate(inputList[i], parameter).validateRegExp();
-                            break;
-                    }
-                };
-                inputList[i].onfocus = function() {
-                    if(Array.prototype.indexOf.call(inputList[i].classList, parameter.inputErrorClass) !== -1) {
-                        inputList[i].classList.remove(parameter.inputErrorClass);
-                    }
-                }
-            }
-            return this
+            }            
+            return collection
         }
     }
+    return selectObj
 }
-function validate(element, parameter) {
-    return {
-        validateNumber: function() {
-            let minValue = element.dataset.validatorMin;
-            let maxValue = element.dataset.validatorMax;
-            if(element.value === '') {
-                return true
-            }
-            else {
-                if(isNaN(element.value)) {
-                    element.classList.add(parameter.inputErrorClass);
-                    return false
-                }
-                else {
-                    if ((minValue !== undefined)&&(element.value <= Number(minValue))) {
-                        element.classList.add(parameter.inputErrorClass);
-                        return false
-                    }
-                    if ((maxValue !== undefined)&&(element.value >= Number(maxValue))) {
-                        element.classList.add(parameter.inputErrorClass);
-                        return false
-                    }
-                    else {
-                        return true
+
+/**
+ * @param {String} property – Свойство для фильтрации
+ * @param {Array} values – Массив разрешённых значений
+ */
+function filterIn(property, values) {
+    var filterObj = {
+        order: 1,
+        processParam: function (collection) {
+            var result = collection.filter(function (personal) {
+                if (personal.hasOwnProperty(property)) {
+                    if (values.includes(personal[property])) {
+                        return true;
                     }
                 }
-            }
-            return this
-        },
-        validateLetter: function() {
-            let regexp = /^[А-Яа-яЁёA-Za-z]+$/i;
-            if((regexp.test(element.value))||(element.value === '')) {
-                return true
-            }
-            else {
-                element.classList.add(parameter.inputErrorClass);
-                return false
-            }
-        },
-        validateRegExp: function() {
-            let regexp = new RegExp(element.dataset.validatorPattern);
-            if((regexp.test(element.value))||(element.value === '')) {
-                return true
-            }
-            else {
-                element.classList.add(parameter.inputErrorClass);
-                return false
-            }
-        },
-        validateIsRequired: function() {
-            for(let i = 0; i < element.length; i++) {
-                let isRequired = element[i].dataset.required !== undefined? true : false;
-                if((isRequired)&&(element[i].value === '')) {
-                    element[i].classList.add(parameter.inputErrorClass);
-                    return false
-                }
-                else return true
-            }
+                return false;
+            });
+            return result
         }
     }
+    return filterObj;
 }
-function reverseValidateClass(element, parameter, isValid) {
-    if(isValid) {
-        element.classList.remove(parameter.formInvalidClass);
-        element.classList.add(parameter.formValidClass);
-    }
-    else {
-        element.classList.remove(parameter.formValidClass);
-        element.classList.add(parameter.formInvalidClass);
-    }
-}
+
+module.exports = {
+    query: query,
+    select: select,
+    filterIn: filterIn
+};
